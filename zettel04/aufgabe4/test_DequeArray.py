@@ -33,7 +33,7 @@ def at_capacity_DequeArray():
 
 @pytest.fixture
 def big_DequeArray():
-    return n_elem_DequeArray(2000)
+    return n_elem_DequeArray(1000000)
 
 all_fixtures = ['empty_DequeArray',    'one_elem_DequeArray',
                 'two_elem_DequeArray', 'at_capacity_DequeArray',
@@ -89,7 +89,7 @@ def test_set_elem(allfixt):
     for index in [0, allfixt.size() // 2, allfixt.size() - 1]:
         array_copy = copy.deepcopy(allfixt)
 
-        allfixt[index] = "bla" * (index % 5 + 1)
+        allfixt[index] = "Replaced elem " + str(index)
 
         assert array_copy.size() == allfixt.size()
 
@@ -140,8 +140,5 @@ def test_first_last(allfixt):
 
 # Doctest
 def test_doctests():
-    # import here because doctest requires the entire module and the tests
-    # above are written with the DequeArray class in global namespace
-    # (from x import y syntax)
     import DequeArray
     doctest.testmod(DequeArray)
