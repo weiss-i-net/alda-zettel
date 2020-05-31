@@ -44,4 +44,8 @@ plt.legend()
 
 plt.show()
 
-
+# As seen in push_complexity.png the complexity of DequeArray is in O(n) while
+# the complexity of SlowDequeArray is in O(n^2).
+# In the second graph you can observe a delay each time a power of 2 is reached
+# this is caused by the array doubling its reserved memory (allocating new
+# memory and moving over its elements).
