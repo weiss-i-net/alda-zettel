@@ -1,4 +1,5 @@
 import pytest
+import random
 
 class SearchTree:
     class Node:
@@ -14,33 +15,42 @@ class SearchTree:
     def __len__(self):
         return self._size
 
-    def __getitem__(self, key):          # implements 'value = tree[key]'
-        return _tree_find(self._root, key)._value
+    def __getitem__(self, key):
+        node = SearchTree._tree_find(self._root, key)
+        if node is None:
+            raise KeyError(f'__getitem__: Theres no Node with key {key}')
+        return node._value
 
-    def __setitem__(self, key, value):   # implements 'tree[key] = value'
-        self._root = self._tree_insert(self._root, key, value)
-        self._size += 1         #TODO only increase size when key is new
+    def __setitem__(self, key, value):
+        # This is an inefficient way to determine whether the size has changed,
+        # since that information is already available inside self._tree_insert
+        # but for the sake of readabilty its done this way
+        if SearchTree._tree_find(self._root, key) is None:
+            self._size += 1
 
-    def __delitem__(self, key):          # implements 'del tree[key] '
+        self._root = SearchTree._tree_insert(self._root, key, value)
+
+    def __delitem__(self, key):
         self._tree_remove(self._root, key)
         self._size -= 1
 
+    def depth(self):
+        return SearchTree._tree_depth(self._root)
+
     @staticmethod
-    def _tree_find(node, key):           # internal implementation
+    def _tree_find(node, key):
         if node is None:
             return None
-        if node.key == key:
+        if node._key == key:
             return node
-        if key < node.key:
-            return _tree_find(node._left, key)
+        if key < node._key:
+            return SearchTree._tree_find(node._left, key)
         else:
-            return _tree_find(node._right, key)
+            return SearchTree._tree_find(node._right, key)
 
     @staticmethod
     def _tree_insert(node, key, value):
-        # not a static method anymore bc we need to access self._size
         if node is None:
-            a = SearchTree.Node(key, value)
             return SearchTree.Node(key, value)
         if node._key == key:
             node._value = value
@@ -52,7 +62,7 @@ class SearchTree:
         return node
 
     @staticmethod
-    def _tree_replacment(node):
+    def _tree_replacement(node):
         # Walk to the smallest key on the right side
         node = node._right
         while node._left is not None:
@@ -60,7 +70,7 @@ class SearchTree:
         return node
 
     @staticmethod
-    def _tree_remove(node, key):         # internal implementation
+    def _tree_remove(node, key):
         # Walk the tree until node is found or not existant
         if node is None:
             raise KeyError(f'Theres no Node with key {key}, so none can be removed')
@@ -82,12 +92,24 @@ class SearchTree:
             # if it has 2 childs, find a suitable replacment
             # (in this case smallest decendent of the right child)
             else:
-                repl = SearchTree._tree_replacment(node)
+                repl = SearchTree._tree_replacement(node)
                 node._key = repl._key
                 node._value = repl._value
                 node._right = SearchTree._tree_remove(node._right, repl._key)
 
         return node
+
+    @staticmethod
+    def _tree_depth(node):
+        if node is None:
+            return 0
+        else:
+            return 1 + max(SearchTree._tree_depth(node._left), SearchTree._tree_depth(node._right))
+
+
+###############################################################################
+#          Attempt to print the tree, not part of the excercise               #
+###############################################################################
 
     @staticmethod
     def _get_nested_tree_list(node):
@@ -101,7 +123,6 @@ class SearchTree:
     @staticmethod
     def _get_depth_list(nested_list):
         depth_list = []
-
         def append_level(curr_elem, curr_depth):
             if curr_elem is None:
                 return
@@ -110,15 +131,12 @@ class SearchTree:
             depth_list[curr_depth].append((curr_elem[0], curr_elem[1]))
             append_level(curr_elem[2], curr_depth + 1)
             append_level(curr_elem[3], curr_depth + 1)
-
         append_level(nested_list, 0)
-
         return depth_list
 
     @staticmethod
     def _get_parent_key_dict(nested_list):
         parent_dict = {}
-
         def append_childs(curr_elem):
             for child in (curr_elem[2], curr_elem[3]):
                 if child is not None:
@@ -130,7 +148,6 @@ class SearchTree:
 
     def __str__(self):
         nested_list = SearchTree._get_nested_tree_list(self._root)
-        print(nested_list)
         depth_list = SearchTree._get_depth_list(nested_list)
         parent_dict = SearchTree._get_parent_key_dict(nested_list)
 
@@ -142,7 +159,7 @@ class SearchTree:
         for level in depth_list[:0:-1]:
             for elem in level:
                 parent_key = parent_dict[elem[0]]
-                padding[parent_key] += padding[elem[0]] + ((len(str(elem))) // 2 + 1 if last_parent_key == parent_key else 0)
+                padding[parent_key] += padding[elem[0]] + (len(str(elem)) // 2 + 1 if last_parent_key == parent_key else 0)
                 last_parent_key = parent_key
 
         outstring = 'Binary search tree:\n'
@@ -150,28 +167,152 @@ class SearchTree:
             outstring += ''.join(' ' * padding[elem[0]] + str(elem) + ' ' * padding[elem[0]] for elem in level) + '\n'
         return outstring
 
+###############################################################################
 
-def test_search_tree():
-    t = SearchTree()
-    assert len(t) == 0
+# Aufgabe 1 c)
+#
+# If we are try to get a tree with minimum depth, we must try to insert the element to
+# make the tree a  balanced tree.  We could make the list first sorted in ascending order. After that, we could
+# choose the element in the middle as our root and insert it. After that we could make the remaining part,
+# left and right, to be a sublist. And the middle element of each sublist would be our left child and right child.
+# After some iterations, we could get a balanced tree.
 
-def main():
+###############################################################################
+#                                  Testing                                    #
+###############################################################################
+
+
+# Fixtures
+
+@pytest.fixture
+def empty():
+    return SearchTree()
+
+@pytest.fixture
+def one_elem():
     a = SearchTree()
-    a[50] = 'a'
-    a[20] = 'b'
-    a[70] = 'c'
-    a[15] = 'd'
-    a[30] = 'e'
-    a[60] = 'f'
-    a[80] = 'g'
-    a[10] = 'h'
-    a[55] = 'i'
-    a[65] = 'j'
-    a[25] = 'k'
-    a[35] = 'l'
-    print(a)
-    del a[30]
-    print(a)
+    a[0] = 'Elem 0'
+    return a
 
-if __name__ == '__main__':
-    main()
+@pytest.fixture
+def sorted_0_99():
+    a = SearchTree()
+    for i in range(100):
+        a[i] = 'Elem ' + str(i)
+    return a
+
+@pytest.fixture(params=range(5))
+def random_permutations_0_99():
+    a = SearchTree()
+    permu = list(range(100))
+    random.shuffle(permu)
+    for i in permu:
+        a[i] = 'Elem ' + str(i)
+    return a
+
+@pytest.fixture()
+def alotta_random_elems():
+    a = SearchTree()
+    for i in range(100000):
+        num = random.randint(-10000, 10000)
+        a[num] = 'Elem ' + str(num)
+    return a
+
+def get_balanced_tree(depth):
+    a = SearchTree()
+    for exp in range(depth, -1, -1):
+        for i in range(2**exp, 2**depth, 2**exp):
+            # elems get overwritten here, thats fine since they dont change their position in the tree
+            a[i] = ' Elem ' + str(i)
+    return a
+
+@pytest.fixture
+def balanced_tree_127():
+    return get_balanced_tree(7)
+
+
+# Tests
+
+def test_len(empty, one_elem, sorted_0_99, random_permutations_0_99, alotta_random_elems, balanced_tree_127):
+    assert len(empty) == 0
+    assert len(one_elem) == 1
+    assert len(sorted_0_99) == 100
+    assert len(random_permutations_0_99) == 100
+    assert 0 < len(alotta_random_elems) <= 20000
+    assert len(balanced_tree_127) == 127
+
+def test_getitem_(empty, one_elem, sorted_0_99, random_permutations_0_99):
+    with pytest.raises(KeyError):
+        empty[0]
+    with pytest.raises(KeyError):
+        one_elem[1]
+    with pytest.raises(KeyError):
+        sorted_0_99[100]
+    with pytest.raises(KeyError):
+        random_permutations_0_99[100]
+
+    assert one_elem[0] == 'Elem 0'
+    for i in range(100):
+        assert sorted_0_99[i] == 'Elem ' + str(i)
+        assert random_permutations_0_99[i] == 'Elem ' + str(i)
+
+def test_setitem_(empty, one_elem, sorted_0_99, random_permutations_0_99, alotta_random_elems):
+    empty[0] = 'setitem 0'
+    assert empty[0] == 'setitem 0'
+    assert len(empty) == 1
+
+    one_elem[0] = 'setitem 0'
+    assert one_elem[0] == 'setitem 0'
+    assert len(one_elem) == 1
+
+    one_elem[1] = 'setitem 1'
+    assert one_elem[1] == 'setitem 1'
+    assert len(one_elem) == 2
+
+    for i in range(100):
+        sorted_0_99[i] = random_permutations_0_99[i] = 'setitem ' + str(i)
+        assert sorted_0_99[i] == random_permutations_0_99[i] == 'setitem ' + str(i)
+    assert len(random_permutations_0_99) == len(sorted_0_99) == 100
+
+    sorted_0_99[100] = random_permutations_0_99[100] = 'setitem 100'
+    assert sorted_0_99[100] == random_permutations_0_99[100] == 'setitem 100'
+    assert len(random_permutations_0_99) == len(sorted_0_99) == 101
+
+    alotta_len = len(alotta_random_elems)
+    alotta_random_elems[0] = 'setitem 0'
+    assert alotta_random_elems[0] == 'setitem 0'
+    assert len(alotta_random_elems) == alotta_len or len(alotta_random_elems) == alotta_len + 1
+
+    alotta_len = len(alotta_random_elems)
+    alotta_random_elems[10001] = 'setitem 10001'
+    assert alotta_random_elems[10001] == 'setitem 10001'
+    assert len(alotta_random_elems) == alotta_len + 1
+
+def test_delitem_(empty, one_elem, sorted_0_99, random_permutations_0_99, balanced_tree_127):
+    with pytest.raises(KeyError):
+        del empty[0]
+
+    with pytest.raises(KeyError):
+        del one_elem[1]
+    del one_elem[0]
+    assert len(one_elem) == 0
+
+    with pytest.raises(KeyError):
+        del sorted_0_99[-1]
+    with pytest.raises(KeyError):
+        del random_permutations_0_99[-1]
+    for i in range(100):
+        del sorted_0_99[i], random_permutations_0_99[i]
+        assert len(sorted_0_99) == len(random_permutations_0_99) == 99 - i
+
+    del balanced_tree_127[64]
+    assert balanced_tree_127._root._key == 65
+
+def test_depth(empty, one_elem, sorted_0_99, balanced_tree_127):
+    assert empty.depth() == 0
+    assert one_elem.depth() == 1
+    assert sorted_0_99.depth() == 100
+    assert balanced_tree_127.depth() == 7
+
+    balanced_tree_127[128] = 'Elem 128'
+    assert balanced_tree_127.depth() == 8
